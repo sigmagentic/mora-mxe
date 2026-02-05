@@ -1,6 +1,6 @@
 # MORA MXE - Privacy-enabled vote aggregation of sensitive Morality data
 
-This solution is based on the Voting - Private Ballots, Public Results code base that provider private voting + public results and brings the same fucntionality to power the aggregation of data for the MORA app. It uses Blockchain Voting as the base to drive the decentralzied veriability of MORA's polls - see [https://mora.bet](https://mora.bet)
+This solution is based on the Voting - Private Ballots, Public Results code base that provider private voting + public results and brings the same fucntionality to power the aggregation of data for the MORA app. It uses Blockchain Voting as the base to drive the decentralzied veriability of MORA's polls - see <a href="https://mora.bet" target="_blank">https://mora.bet</a>
 
 Blockchain transparency makes voting / polls dangerous: visible votes enable vote buying (prove your vote, get paid) and coercion. Encrypt the ballots? Whoever holds the decryption key to count them can still see every vote - and potentially sell or leak that data. Traditional encryption just shifts who holds the power.
 
