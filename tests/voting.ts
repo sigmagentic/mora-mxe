@@ -55,6 +55,9 @@ describe("Voting", () => {
   let owner = null;
   let provider = null;
   let program = null;
+  let clusterOffset = null;
+  let clusterAccount = null;
+  let awaitEvent = null;
 
   if (useDevnet) {
     // Devnet configuration
@@ -78,7 +81,7 @@ describe("Voting", () => {
     program = anchor.workspace.Voting as Program<Voting>;
 
     type Event = anchor.IdlEvents<(typeof program)["idl"]>;
-    const awaitEvent = async <E extends keyof Event>(
+    awaitEvent = async <E extends keyof Event>(
       eventName: E
     ): Promise<Event[E]> => {
       let listenerId: number;
@@ -92,8 +95,8 @@ describe("Voting", () => {
       return event;
     };
 
-    const clusterOffset = 456; // Use your cluster offset
-    const clusterAccount = getClusterAccAddress(clusterOffset);
+    clusterOffset = 456; // Use your cluster offset
+    clusterAccount = getClusterAccAddress(clusterOffset);
 
     console.log("Arcium env is (devnet)", getArciumEnv());
     console.log("Cluster account is (devnet)", clusterAccount.toBase58());
@@ -105,7 +108,7 @@ describe("Voting", () => {
     provider = anchor.getProvider();
 
     type Event = anchor.IdlEvents<(typeof program)["idl"]>;
-    const awaitEvent = async <E extends keyof Event>(
+    awaitEvent = async <E extends keyof Event>(
       eventName: E
     ): Promise<Event[E]> => {
       let listenerId: number;
@@ -120,18 +123,21 @@ describe("Voting", () => {
     };
 
     const arciumEnv = getArciumEnv();
-    const clusterAccount = getClusterAccAddress(arciumEnv.arciumClusterOffset);
+    clusterOffset = arciumEnv.arciumClusterOffset;
+    clusterAccount = getClusterAccAddress(clusterOffset);
 
     console.log("Arcium env is (non-devnet)", arciumEnv);
     console.log("Cluster account is (non-devnet)", clusterAccount.toBase58());
   }
 
-  if (!owner || !provider) {
-    throw new Error("Owner or provider not found");
+  if (!owner || !provider || !clusterOffset || !awaitEvent || !clusterAccount) {
+    throw new Error("Min init params missing");
   }
 
   it("can vote on polls!", async () => {
-    const POLL_IDS = [420, 421, 422];
+    // const POLL_IDS = [420, 421, 422];
+    // const POLL_IDS = [420, 421]; // these were a success to create
+    const POLL_IDS = [426]; // try to redo a poll
     // const owner = readKpJson(`${os.homedir()}/.config/solana/id.json`);
 
     const mxePublicKey = await getMXEPublicKeyWithRetry(
@@ -144,7 +150,6 @@ describe("Voting", () => {
     console.log("++++++++++++++++");
     console.log("program.programId", program.programId.toBase58());
     console.log("getArciumProgramId()", getArciumProgramId().toBase58());
-    console.log("++++++++++++++++");
 
     // console.log("Initializing vote stats computation definition");
     // const initVoteStatsSig = await initVoteStatsCompDef(program, owner);
@@ -167,176 +172,195 @@ describe("Voting", () => {
     //   initRRSig
     // );
 
-    expect(true).to.equal(true);
+    const voteComputationOffset = new anchor.BN(randomBytes(8), "hex");
 
-    // const { privateKey, publicKey } = deriveEncryptionKey(
-    //   owner,
-    //   ENCRYPTION_KEY_MESSAGE
-    // );
-    // const sharedSecret = x25519.getSharedSecret(privateKey, mxePublicKey);
-    // const cipher = new RescueCipher(sharedSecret);
+    const _computationAccount = getComputationAccAddress(
+      clusterOffset,
+      voteComputationOffset
+    );
+    const _clusterAccount = getClusterAccAddress(clusterOffset);
+    const _mxeAccount = getMXEAccAddress(program.programId);
+    const _mempoolAccount = getMempoolAccAddress(clusterOffset);
+    const _executingPool = getExecutingPoolAccAddress(clusterOffset);
 
-    // // Create multiple polls
-    // for (const POLL_ID of POLL_IDS) {
-    //   const pollNonce = randomBytes(16);
+    console.log("_computationAccount", _computationAccount.toBase58());
+    console.log("_clusterAccount", _clusterAccount.toBase58());
+    console.log("_mxeAccount", _mxeAccount.toBase58());
+    console.log("_mempoolAccount", _mempoolAccount.toBase58());
+    console.log("_executingPool", _executingPool.toBase58());
 
-    //   const pollComputationOffset = new anchor.BN(randomBytes(8), "hex");
+    const { privateKey, publicKey } = deriveEncryptionKey(
+      owner,
+      ENCRYPTION_KEY_MESSAGE
+    );
+    const sharedSecret = x25519.getSharedSecret(privateKey, mxePublicKey);
+    const cipher = new RescueCipher(sharedSecret);
 
-    //   const pollSig = await program.methods
-    //     .createNewPoll(
-    //       pollComputationOffset,
-    //       POLL_ID,
-    //       `Poll ${POLL_ID}: $SOL to 500?`,
-    //       new anchor.BN(deserializeLE(pollNonce).toString())
-    //     )
-    //     .accountsPartial({
-    //       computationAccount: getComputationAccAddress(
-    //         arciumEnv.arciumClusterOffset,
-    //         pollComputationOffset
-    //       ),
-    //       clusterAccount: clusterAccount,
-    //       mxeAccount: getMXEAccAddress(program.programId),
-    //       mempoolAccount: getMempoolAccAddress(arciumEnv.arciumClusterOffset),
-    //       executingPool: getExecutingPoolAccAddress(
-    //         arciumEnv.arciumClusterOffset
-    //       ),
-    //       compDefAccount: getCompDefAccAddress(
-    //         program.programId,
-    //         Buffer.from(getCompDefAccOffset("init_vote_stats")).readUInt32LE()
-    //       ),
-    //     })
-    //     .rpc({
-    //       skipPreflight: true,
-    //       preflightCommitment: "confirmed",
-    //       commitment: "confirmed",
-    //     });
+    // expect(true).to.equal(true);
 
-    //   console.log(`Poll ${POLL_ID} created with signature`, pollSig);
+    console.log("POLL_IDS", POLL_IDS);
 
-    //   const finalizePollSig = await awaitComputationFinalization(
-    //     provider as anchor.AnchorProvider,
-    //     pollComputationOffset,
-    //     program.programId,
-    //     "confirmed"
-    //   );
-    //   console.log(`Finalize poll ${POLL_ID} sig is `, finalizePollSig);
-    // }
+    // Create multiple polls
+    for (const POLL_ID of POLL_IDS) {
+      const pollNonce = randomBytes(16);
 
-    // // Cast votes for each poll with different outcomes
-    // const voteOutcomes = [true, false, true]; // Different outcomes for each poll
-    // for (let i = 0; i < POLL_IDS.length; i++) {
-    //   const POLL_ID = POLL_IDS[i];
-    //   const vote = BigInt(voteOutcomes[i]);
-    //   const plaintext = [vote];
+      const pollComputationOffset = new anchor.BN(randomBytes(8), "hex");
 
-    //   const nonce = randomBytes(16);
-    //   const ciphertext = cipher.encrypt(plaintext, nonce);
+      const pollSig = await program.methods
+        .createNewPoll(
+          pollComputationOffset,
+          POLL_ID,
+          `Poll ${POLL_ID}: $SOL to 500?`,
+          new anchor.BN(deserializeLE(pollNonce).toString())
+        )
+        .accountsPartial({
+          computationAccount: getComputationAccAddress(
+            clusterOffset,
+            pollComputationOffset
+          ),
+          clusterAccount: getClusterAccAddress(clusterOffset),
+          mxeAccount: getMXEAccAddress(program.programId),
+          mempoolAccount: getMempoolAccAddress(clusterOffset),
+          executingPool: getExecutingPoolAccAddress(clusterOffset),
+          compDefAccount: getCompDefAccAddress(
+            program.programId,
+            Buffer.from(getCompDefAccOffset("init_vote_stats")).readUInt32LE()
+          ),
+        })
+        .rpc({
+          skipPreflight: true,
+          preflightCommitment: "confirmed",
+          commitment: "confirmed",
+        });
 
-    //   const voteEventPromise = awaitEvent("voteEvent");
+      console.log(`Poll ${POLL_ID} created with signature`, pollSig);
 
-    //   console.log(`Voting for poll ${POLL_ID}`);
+      const finalizePollSig = await awaitComputationFinalization(
+        provider as anchor.AnchorProvider,
+        pollComputationOffset,
+        program.programId,
+        "confirmed"
+      );
+      console.log(`Finalize poll ${POLL_ID} sig is `, finalizePollSig);
+    }
 
-    //   const voteComputationOffset = new anchor.BN(randomBytes(8), "hex");
+    // Cast votes for each poll with different outcomes
+    const voteOutcomes = [true, false, true]; // Different outcomes for each poll
+    for (let i = 0; i < POLL_IDS.length; i++) {
+      const POLL_ID = POLL_IDS[i];
+      console.log(`vote for poll ${POLL_ID} is ${voteOutcomes[i]}`);
+      const vote = BigInt(voteOutcomes[i]); // true = 1n, false = 0n
+      const plaintext = [vote];
 
-    //   const queueVoteSig = await program.methods
-    //     .vote(
-    //       voteComputationOffset,
-    //       POLL_ID,
-    //       Array.from(ciphertext[0]),
-    //       Array.from(publicKey),
-    //       new anchor.BN(deserializeLE(nonce).toString())
-    //     )
-    //     .accountsPartial({
-    //       computationAccount: getComputationAccAddress(
-    //         arciumEnv.arciumClusterOffset,
-    //         voteComputationOffset
-    //       ),
-    //       clusterAccount: clusterAccount,
-    //       mxeAccount: getMXEAccAddress(program.programId),
-    //       mempoolAccount: getMempoolAccAddress(arciumEnv.arciumClusterOffset),
-    //       executingPool: getExecutingPoolAccAddress(
-    //         arciumEnv.arciumClusterOffset
-    //       ),
-    //       compDefAccount: getCompDefAccAddress(
-    //         program.programId,
-    //         Buffer.from(getCompDefAccOffset("vote")).readUInt32LE()
-    //       ),
-    //       authority: owner.publicKey,
-    //     })
-    //     .rpc({
-    //       skipPreflight: true,
-    //       preflightCommitment: "confirmed",
-    //       commitment: "confirmed",
-    //     });
-    //   console.log(`Queue vote for poll ${POLL_ID} sig is `, queueVoteSig);
+      const nonce = randomBytes(16);
+      const ciphertext = cipher.encrypt(plaintext, nonce);
 
-    //   const finalizeSig = await awaitComputationFinalization(
-    //     provider as anchor.AnchorProvider,
-    //     voteComputationOffset,
-    //     program.programId,
-    //     "confirmed"
-    //   );
-    //   console.log(`Finalize vote for poll ${POLL_ID} sig is `, finalizeSig);
+      const voteEventPromise = awaitEvent("voteEvent");
 
-    //   const voteEvent = await voteEventPromise;
-    //   console.log(
-    //     `Vote casted for poll ${POLL_ID} at timestamp `,
-    //     voteEvent.timestamp.toString()
-    //   );
-    // }
+      console.log(`Voting for poll ${POLL_ID}`);
 
-    // // Reveal results for each poll
-    // for (let i = 0; i < POLL_IDS.length; i++) {
-    //   const POLL_ID = POLL_IDS[i];
-    //   const expectedOutcome = voteOutcomes[i];
+      const voteComputationOffset = new anchor.BN(randomBytes(8), "hex");
 
-    //   const revealEventPromise = awaitEvent("revealResultEvent");
+      const queueVoteSig = await program.methods
+        .vote(
+          voteComputationOffset,
+          POLL_ID,
+          Array.from(ciphertext[0]),
+          Array.from(publicKey),
+          new anchor.BN(deserializeLE(nonce).toString())
+        )
+        .accountsPartial({
+          computationAccount: getComputationAccAddress(
+            clusterOffset,
+            voteComputationOffset
+          ),
+          clusterAccount: getClusterAccAddress(clusterOffset),
+          mxeAccount: getMXEAccAddress(program.programId),
+          mempoolAccount: getMempoolAccAddress(clusterOffset),
+          executingPool: getExecutingPoolAccAddress(clusterOffset),
+          compDefAccount: getCompDefAccAddress(
+            program.programId,
+            Buffer.from(getCompDefAccOffset("vote")).readUInt32LE()
+          ),
+          authority: owner.publicKey,
+        })
+        .rpc({
+          skipPreflight: true,
+          preflightCommitment: "confirmed",
+          commitment: "confirmed",
+        });
+      console.log(`Queue vote for poll ${POLL_ID} sig is `, queueVoteSig);
 
-    //   const revealComputationOffset = new anchor.BN(randomBytes(8), "hex");
+      const finalizeSig = await awaitComputationFinalization(
+        provider as anchor.AnchorProvider,
+        voteComputationOffset,
+        program.programId,
+        "confirmed"
+      );
+      console.log(`Finalize vote for poll ${POLL_ID} sig is `, finalizeSig);
 
-    //   const revealQueueSig = await program.methods
-    //     .revealResult(revealComputationOffset, POLL_ID)
-    //     .accountsPartial({
-    //       computationAccount: getComputationAccAddress(
-    //         arciumEnv.arciumClusterOffset,
-    //         revealComputationOffset
-    //       ),
-    //       clusterAccount: clusterAccount,
-    //       mxeAccount: getMXEAccAddress(program.programId),
-    //       mempoolAccount: getMempoolAccAddress(arciumEnv.arciumClusterOffset),
-    //       executingPool: getExecutingPoolAccAddress(
-    //         arciumEnv.arciumClusterOffset
-    //       ),
-    //       compDefAccount: getCompDefAccAddress(
-    //         program.programId,
-    //         Buffer.from(getCompDefAccOffset("reveal_result")).readUInt32LE()
-    //       ),
-    //     })
-    //     .rpc({
-    //       skipPreflight: true,
-    //       preflightCommitment: "confirmed",
-    //       commitment: "confirmed",
-    //     });
-    //   console.log(`Reveal queue for poll ${POLL_ID} sig is `, revealQueueSig);
+      const voteEvent = await voteEventPromise;
+      console.log(
+        `Vote casted for poll ${POLL_ID} at timestamp `,
+        voteEvent.timestamp.toString()
+      );
+    }
 
-    //   const revealFinalizeSig = await awaitComputationFinalization(
-    //     provider as anchor.AnchorProvider,
-    //     revealComputationOffset,
-    //     program.programId,
-    //     "confirmed"
-    //   );
-    //   console.log(
-    //     `Reveal finalize for poll ${POLL_ID} sig is `,
-    //     revealFinalizeSig
-    //   );
+    // Reveal results for each poll
+    for (let i = 0; i < POLL_IDS.length; i++) {
+      const POLL_ID = POLL_IDS[i];
+      const expectedOutcome = voteOutcomes[i];
+      console.log(`expected outcome for poll ${POLL_ID} is ${expectedOutcome}`);
 
-    //   const revealEvent = await revealEventPromise;
-    //   console.log(
-    //     `Decrypted winner for poll ${POLL_ID} is `,
-    //     revealEvent.output
-    //   );
-    //   expect(revealEvent.output).to.equal(expectedOutcome);
-    // }
+      const revealEventPromise = awaitEvent("revealResultEvent");
+
+      const revealComputationOffset = new anchor.BN(randomBytes(8), "hex");
+
+      const revealQueueSig = await program.methods
+        .revealResult(revealComputationOffset, POLL_ID)
+        .accountsPartial({
+          computationAccount: getComputationAccAddress(
+            clusterOffset,
+            revealComputationOffset
+          ),
+          clusterAccount: getClusterAccAddress(clusterOffset),
+          mxeAccount: getMXEAccAddress(program.programId),
+          mempoolAccount: getMempoolAccAddress(clusterOffset),
+          executingPool: getExecutingPoolAccAddress(clusterOffset),
+          compDefAccount: getCompDefAccAddress(
+            program.programId,
+            Buffer.from(getCompDefAccOffset("reveal_result")).readUInt32LE()
+          ),
+        })
+        .rpc({
+          skipPreflight: true,
+          preflightCommitment: "confirmed",
+          commitment: "confirmed",
+        });
+      console.log(`Reveal queue for poll ${POLL_ID} sig is `, revealQueueSig);
+
+      const revealFinalizeSig = await awaitComputationFinalization(
+        provider as anchor.AnchorProvider,
+        revealComputationOffset,
+        program.programId,
+        "confirmed"
+      );
+      console.log(
+        `Reveal finalize for poll ${POLL_ID} sig is `,
+        revealFinalizeSig
+      );
+
+      const revealEvent = await revealEventPromise;
+      console.log(
+        `Decrypted winner for poll ${POLL_ID} is `,
+        revealEvent.output
+      );
+      expect(revealEvent.output).to.equal(expectedOutcome);
+      // expect(revealEvent.output).to.equal(!expectedOutcome);
+      // expect(revealEvent.output).to.not.equal(!expectedOutcome); // inverse check
+    }
+
+    console.log("++++++++++++++++");
   });
 
   async function initVoteStatsCompDef(

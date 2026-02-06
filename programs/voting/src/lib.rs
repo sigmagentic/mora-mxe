@@ -1,20 +1,32 @@
 use anchor_lang::prelude::*;
 use arcium_anchor::prelude::*;
-use arcium_client::idl::arcium::types::CallbackAccount;
+use arcium_client::idl::arcium::types::{CallbackAccount, CircuitSource, OffChainCircuitSource};
+use arcium_macros::circuit_hash;
 
 const COMP_DEF_OFFSET_INIT_VOTE_STATS: u32 = comp_def_offset("init_vote_stats");
 const COMP_DEF_OFFSET_VOTE: u32 = comp_def_offset("vote");
 const COMP_DEF_OFFSET_REVEAL: u32 = comp_def_offset("reveal_result");
 
-declare_id!("2eVpHPApZM11f17ynHgqUy58XWLveBmVNCWMh6bZd8hw");
+declare_id!("HeSUfuXCo81dU5WH7JFzwLVgN8pLUtLtB1RdLyAKFVAD");
 
 #[arcium_program]
 pub mod voting {
     use super::*;
 
     pub fn init_vote_stats_comp_def(ctx: Context<InitVoteStatsCompDef>) -> Result<()> {
-        init_comp_def(ctx.accounts, None, None)?;
-        Ok(())
+        // init_comp_def(ctx.accounts, None, None)?;
+        // Ok(())
+        
+        // Point to your uploaded circuit file
+        init_comp_def(
+          ctx.accounts,
+          Some(CircuitSource::OffChain(OffChainCircuitSource {
+              source: "https://apafhvjhxipkoxyjhjue.supabase.co/storage/v1/object/public/mora-mxe-devnet/init_vote_stats.arcis".to_string(),
+              hash: circuit_hash!("init_vote_stats"),
+          })),
+          None,
+      )?;
+      Ok(())
     }
 
     /// Creates a new confidential poll with the given question.
@@ -88,8 +100,19 @@ pub mod voting {
     }
 
     pub fn init_vote_comp_def(ctx: Context<InitVoteCompDef>) -> Result<()> {
-        init_comp_def(ctx.accounts, None, None)?;
-        Ok(())
+        // init_comp_def(ctx.accounts, None, None)?;
+        // Ok(())
+
+        // Point to your uploaded circuit file
+        init_comp_def(
+          ctx.accounts,
+          Some(CircuitSource::OffChain(OffChainCircuitSource {
+              source: "https://apafhvjhxipkoxyjhjue.supabase.co/storage/v1/object/public/mora-mxe-devnet/vote.arcis".to_string(),
+              hash: circuit_hash!("vote"),
+          })),
+          None,
+      )?;
+      Ok(())
     }
 
     /// Submits an encrypted vote to the poll.
@@ -170,8 +193,19 @@ pub mod voting {
     }
 
     pub fn init_reveal_result_comp_def(ctx: Context<InitRevealResultCompDef>) -> Result<()> {
-        init_comp_def(ctx.accounts, None, None)?;
-        Ok(())
+        // init_comp_def(ctx.accounts, None, None)?;
+        // Ok(())
+
+        // Point to your uploaded circuit file
+        init_comp_def(
+          ctx.accounts,
+          Some(CircuitSource::OffChain(OffChainCircuitSource {
+              source: "https://apafhvjhxipkoxyjhjue.supabase.co/storage/v1/object/public/mora-mxe-devnet/reveal_result.arcis".to_string(),
+              hash: circuit_hash!("reveal_result"),
+          })),
+          None,
+      )?;
+      Ok(())
     }
 
     /// Reveals the final result of the poll.

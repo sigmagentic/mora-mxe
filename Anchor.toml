@@ -5,11 +5,11 @@ package_manager = "yarn"
 resolution = true
 skip-lint = false
 
-[programs.localnet]
-voting = "2eVpHPApZM11f17ynHgqUy58XWLveBmVNCWMh6bZd8hw"
-
 [programs.devnet]
-election = "2eVpHPApZM11f17ynHgqUy58XWLveBmVNCWMh6bZd8hw"
+voting = "HeSUfuXCo81dU5WH7JFzwLVgN8pLUtLtB1RdLyAKFVAD"
+
+[programs.localnet]
+voting = "HeSUfuXCo81dU5WH7JFzwLVgN8pLUtLtB1RdLyAKFVAD"
 
 [registry]
 url = "https://api.apr.dev"
